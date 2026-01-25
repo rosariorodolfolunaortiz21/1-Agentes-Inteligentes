@@ -8,11 +8,13 @@ Revisa el archivo README.md con las instrucciones de la tarea.
 """
 __author__ = 'Rosario Rodolfo Luna Ortiz'
 
-from entornos_o import Entorno
+from entornos_o import Entorno, Agente
 import random
 
 
-# Inicio del entorno NueveCuartos
+# ============================
+# Entorno NueveCuartos
+# ============================
 class NueveCuartos(Entorno):
     def __init__(self):
         super().__init__()
@@ -30,8 +32,9 @@ class NueveCuartos(Entorno):
             for cuarto in range(1, 4):
                 self.estado[(piso, cuarto)] = "sucio"
 
-        # Función de desempeño
+        # Función de desempeño y costo
         self.desempeno = 0
+        self.costo_total = 0
 
         # Costos de acciones
         self.costos = {
@@ -63,19 +66,24 @@ class NueveCuartos(Entorno):
 
         return False
 
+    def costo_accion(self, accion):
+        return self.costos.get(accion, 0)
+
     def transicion(self, accion):
         if not self.accion_legal(accion):
             return
 
-        # Penaliza por energía
-        self.desempeno -= self.costos[accion]
+        # Manejo de costos
+        costo = self.costo_accion(accion)
+        self.costo_total += costo
+        self.desempeno -= costo
 
         piso, cuarto = self.posicion
 
         if accion == "limpiar":
             if self.estado[(piso, cuarto)] == "sucio":
                 self.estado[(piso, cuarto)] = "limpio"
-                self.desempeno += 10  # premio por limpiar
+                self.desempeno += 10  # recompensa por limpiar
 
         elif accion == "ir_Derecha":
             self.posicion = (piso, cuarto + 1)
@@ -91,3 +99,58 @@ class NueveCuartos(Entorno):
 
         elif accion == "nada":
             pass
+
+    def percepcion(self):
+        piso, cuarto = self.posicion
+        return self.posicion, self.estado[(piso, cuarto)]
+
+
+# ============================
+# Agente Aleatorio
+# ============================
+class AgenteAleatorio(Agente):
+    def __init__(self):
+        self.acciones = [
+            "ir_Derecha", "ir_Izquierda",
+            "subir", "bajar",
+            "limpiar", "nada"
+        ]
+
+    def programa(self, percepcion):
+        return random.choice(self.acciones)
+
+
+# ============================
+# Simulación simple
+# ============================
+def simular_agente(entorno, agente, pasos=50):
+    print("\n--- INICIO SIMULACIÓN ---\n")
+
+    for i in range(pasos):
+        p = entorno.percepcion()
+        accion = agente.programa(p)
+
+        if entorno.accion_legal(accion):
+            entorno.transicion(accion)
+
+        print(f"Paso {i}")
+        print(f"  Posición: {entorno.posicion}")
+        print(f"  Estado actual: {entorno.estado[entorno.posicion]}")
+        print(f"  Acción: {accion}")
+        print(f"  Costo total: {entorno.costo_total}")
+        print(f"  Desempeño: {entorno.desempeno}")
+        print("-" * 30)
+
+    print("\n--- FIN SIMULACIÓN ---")
+    print(f"Costo total final: {entorno.costo_total}")
+    print(f"Desempeño final: {entorno.desempeno}")
+
+
+# ============================
+# Prueba principal
+# ============================
+if __name__ == "__main__":
+    entorno = NueveCuartos()
+    agente = AgenteAleatorio()
+
+    simular_agente(entorno, agente, pasos=30)
