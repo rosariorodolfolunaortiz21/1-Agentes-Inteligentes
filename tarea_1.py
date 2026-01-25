@@ -214,7 +214,7 @@ class NueveCuartosEstocastico(NueveCuartos):
                 ]
                 if acciones_legales:
                     super().transicion(random.choice(acciones_legales))
-
+ 
 
 
 # ============================
