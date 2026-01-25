@@ -121,6 +121,44 @@ class AgenteAleatorio(Agente):
 
 
 # ============================
+# Agente Reactivo Basado en Modelo
+# ============================
+class AgenteReactivoModeloNueveCuartos(Agente):
+    def __init__(self):
+        # Modelo interno: todos sucios al inicio
+        self.modelo = {}
+        for piso in range(1, 4):
+            for cuarto in range(1, 4):
+                self.modelo[(piso, cuarto)] = "sucio"
+
+    def programa(self, percepcion):
+        (piso, cuarto), situacion = percepcion
+
+        # Actualiza el modelo interno
+        self.modelo[(piso, cuarto)] = situacion
+
+        # 1. Si está sucio, limpia
+        if situacion == "sucio":
+            return "limpiar"
+
+        # 2. Busca algún cuarto sucio
+        for (p, c), estado in self.modelo.items():
+            if estado == "sucio":
+                # Movimiento simple hacia el objetivo
+                if p > piso and cuarto == 3:
+                    return "subir"
+                if p < piso and cuarto == 1:
+                    return "bajar"
+                if c > cuarto:
+                    return "ir_Derecha"
+                if c < cuarto:
+                    return "ir_Izquierda"
+
+        # 3. Si todo está limpio
+        return "nada"
+
+
+# ============================
 # Simulación simple
 # ============================
 def simular_agente(entorno, agente, pasos=50):
@@ -147,10 +185,22 @@ def simular_agente(entorno, agente, pasos=50):
 
 
 # ============================
+# Comparación de agentes
+# ============================
+def comparar_agentes():
+    print("\n====== AGENTE ALEATORIO ======")
+    entorno1 = NueveCuartos()
+    agente1 = AgenteAleatorio()
+    simular_agente(entorno1, agente1, pasos=50)
+
+    print("\n====== AGENTE REACTIVO BASADO EN MODELO ======")
+    entorno2 = NueveCuartos()
+    agente2 = AgenteReactivoModeloNueveCuartos()
+    simular_agente(entorno2, agente2, pasos=50)
+
+
+# ============================
 # Prueba principal
 # ============================
 if __name__ == "__main__":
-    entorno = NueveCuartos()
-    agente = AgenteAleatorio()
-
-    simular_agente(entorno, agente, pasos=30)
+    comparar_agentes()
