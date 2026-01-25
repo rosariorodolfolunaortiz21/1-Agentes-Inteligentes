@@ -54,7 +54,6 @@ class NueveCuartos(Entorno):
             return piso < 3 and cuarto == 3
         if accion == "bajar":
             return piso > 1 and cuarto == 1
-
         return False
 
     def costo_accion(self, accion):
@@ -150,7 +149,7 @@ class NueveCuartosCiego(NueveCuartos):
 
 
 # ============================
-# Agente Racional Ciego
+# Agente Racional para Ciego
 # ============================
 class AgenteRacionalCiego(Agente):
     def __init__(self):
@@ -181,43 +180,107 @@ class AgenteRacionalCiego(Agente):
 
 
 # ============================
+# Entorno NueveCuartosEstocástico
+# ============================
+class NueveCuartosEstocastico(NueveCuartos):
+    def transicion(self, accion):
+        if not self.accion_legal(accion):
+            return
+
+        piso, cuarto = self.posicion
+        r = random.random()
+
+        if accion == "limpiar":
+            if r < 0.8:
+                super().transicion(accion)
+            else:
+                # Falló limpiar: se cobra costo, pero no se limpia
+                costo = self.costo_accion(accion)
+                self.costo_total += costo
+                self.desempeno -= costo
+
+        elif accion in ["ir_Derecha", "ir_Izquierda", "subir", "bajar"]:
+            if r < 0.8:
+                super().transicion(accion)
+            elif r < 0.9:
+                # Se queda en su lugar pero paga costo
+                costo = self.costo_accion(accion)
+                self.costo_total += costo
+                self.desempeno -= costo
+            else:
+                acciones_legales = [
+                    a for a in ["ir_Derecha", "ir_Izquierda", "subir", "bajar"]
+                    if self.accion_legal(a)
+                ]
+                if acciones_legales:
+                    super().transicion(random.choice(acciones_legales))
+
+
+
+# ============================
+# Agente Racional Estocástico
+# ============================
+class AgenteRacionalEstocastico(Agente):
+    def __init__(self):
+        self.modelo = {}
+        for piso in range(1, 4):
+            for cuarto in range(1, 4):
+                self.modelo[(piso, cuarto)] = "sucio"
+
+    def programa(self, percepcion):
+        (piso, cuarto), situacion = percepcion
+        self.modelo[(piso, cuarto)] = situacion
+
+        if situacion == "sucio":
+            return "limpiar"
+
+        for (p, c), estado in self.modelo.items():
+            if estado == "sucio":
+                if p > piso and cuarto == 3:
+                    return "subir"
+                if p < piso and cuarto == 1:
+                    return "bajar"
+                if c > cuarto:
+                    return "ir_Derecha"
+                if c < cuarto:
+                    return "ir_Izquierda"
+
+        return "nada"
+
+
+# ============================
 # Simulación
 # ============================
 def simular_agente(entorno, agente, pasos=200):
-    for i in range(pasos):
+    for _ in range(pasos):
         p = entorno.percepcion()
         accion = agente.programa(p)
-
         if entorno.accion_legal(accion):
             entorno.transicion(accion)
 
-    print(f"Costo total final: {entorno.costo_total}")
-    print(f"Desempeño final: {entorno.desempeno}")
+    print("Costo total:", entorno.costo_total)
+    print("Desempeño:", entorno.desempeno)
 
 
 # ============================
 # Comparaciones
 # ============================
 def comparar_agentes():
-    print("\n=== NueveCuartos ===")
-    entorno1 = NueveCuartos()
-    agente1 = AgenteAleatorio()
-    simular_agente(entorno1, agente1)
-
-    entorno2 = NueveCuartos()
-    agente2 = AgenteReactivoModeloNueveCuartos()
-    simular_agente(entorno2, agente2)
+    print("\n--- NueveCuartos Normal ---")
+    simular_agente(NueveCuartos(), AgenteAleatorio())
+    simular_agente(NueveCuartos(), AgenteReactivoModeloNueveCuartos())
 
 
 def comparar_agentes_ciego():
-    print("\n=== NueveCuartosCiego ===")
-    entorno1 = NueveCuartosCiego()
-    agente1 = AgenteAleatorio()
-    simular_agente(entorno1, agente1)
+    print("\n--- NueveCuartosCiego ---")
+    simular_agente(NueveCuartosCiego(), AgenteAleatorio())
+    simular_agente(NueveCuartosCiego(), AgenteRacionalCiego())
 
-    entorno2 = NueveCuartosCiego()
-    agente2 = AgenteRacionalCiego()
-    simular_agente(entorno2, agente2)
+
+def comparar_agentes_estocastico():
+    print("\n--- NueveCuartosEstocástico ---")
+    simular_agente(NueveCuartosEstocastico(), AgenteAleatorio())
+    simular_agente(NueveCuartosEstocastico(), AgenteRacionalEstocastico())
 
 
 # ============================
@@ -226,3 +289,4 @@ def comparar_agentes_ciego():
 if __name__ == "__main__":
     comparar_agentes()
     comparar_agentes_ciego()
+    comparar_agentes_estocastico()
